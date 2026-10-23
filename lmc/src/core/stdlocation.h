@@ -1,4 +1,4 @@
-﻿/****************************************************************************
+/****************************************************************************
 **
 ** This file is part of LAN Messenger.
 ** 
@@ -30,6 +30,7 @@
 #include <QDesktopServices>
 #include <QDateTime>
 #include <QStandardPaths>
+#include <QCoreApplication>
 #include "settings.h"
 
 #define SL_TRANSFERHISTORY "transfers.lst"
@@ -72,7 +73,18 @@ public:
   }
 
   static QString resourceFile(void) {
-    return QDir::toNativeSeparators(QDir::current().absoluteFilePath(SL_RESOURCE));
+    QStringList candidates = {
+      QDir::current().absoluteFilePath(SL_RESOURCE),
+      QCoreApplication::applicationDirPath() + "/" SL_RESOURCE,
+      QCoreApplication::applicationDirPath() + "/runtime/" SL_RESOURCE,
+      QCoreApplication::applicationDirPath() + "/../release/" SL_RESOURCE,
+      "/usr/lib/lmc/" SL_RESOURCE
+    };
+    for(const QString& c : candidates) {
+      if(QFile::exists(c))
+        return QDir::toNativeSeparators(c);
+    }
+    return QDir::toNativeSeparators(candidates.first());
   }
 
   static QString resLangDir(void) {
@@ -80,7 +92,18 @@ public:
   }
 
   static QString sysLangDir(void) {
-    return QDir::toNativeSeparators(QDir::currentPath() + "/" SL_LANGDIR);
+    QStringList candidates = {
+      QDir::currentPath() + "/" SL_LANGDIR,
+      QCoreApplication::applicationDirPath() + "/" SL_LANGDIR,
+      QCoreApplication::applicationDirPath() + "/runtime/" SL_LANGDIR,
+      QCoreApplication::applicationDirPath() + "/../release/" SL_LANGDIR,
+      "/usr/lib/lmc/" SL_LANGDIR
+    };
+    for(const QString& c : candidates) {
+      if(QDir(c).exists())
+        return QDir::toNativeSeparators(c);
+    }
+    return QDir::toNativeSeparators(candidates.first());
   }
 
   static QString userLangDir(void) {
@@ -94,7 +117,17 @@ public:
   }
 
   static QString sysThemeDir(void) {
-    return QDir::toNativeSeparators(QDir::currentPath() + "/" SL_THEMEDIR);
+    QStringList candidates = {
+      QDir::currentPath() + "/" SL_THEMEDIR,
+      QCoreApplication::applicationDirPath() + "/" SL_THEMEDIR,
+      QCoreApplication::applicationDirPath() + "/../release/" SL_THEMEDIR,
+      "/usr/lib/lmc/" SL_THEMEDIR
+    };
+    for(const QString& c : candidates) {
+      if(QDir(c).exists())
+        return QDir::toNativeSeparators(c);
+    }
+    return QDir::toNativeSeparators(candidates.first());
   }
 
   static QString userThemeDir(void) {
