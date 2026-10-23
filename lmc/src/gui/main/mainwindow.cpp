@@ -658,6 +658,13 @@ void lmcMainWindow::userFolderAction_triggered(void) {
   }
 }
 
+void lmcMainWindow::userRemoteAction_triggered(void) {
+  if(!ui.tvUserList->currentItem())
+    return;
+  QString userId = ui.tvUserList->currentItem()->data(0, IdRole).toString();
+  emit remoteStarting(&userId);
+}
+
 void lmcMainWindow::userInfoAction_triggered(void) {
   QString userId = ui.tvUserList->currentItem()->data(0, IdRole).toString();
   QString message;
@@ -812,6 +819,8 @@ void lmcMainWindow::createUserMenu(void) {
                                               &lmcMainWindow::userFileAction_triggered);
   userFolderAction = ActionHelper::createAction(pUserMenu, "Send a Fol&der", this,
                                                 &lmcMainWindow::userFolderAction_triggered);
+  userRemoteAction = ActionHelper::createAction(pUserMenu, "Remote &Desktop...", this,
+                                                &lmcMainWindow::userRemoteAction_triggered);
   pUserMenu->addSeparator();
   userBroadcastAction = ActionHelper::createAction(pUserMenu, "Send &Broadcast Message", this,
                                                    &lmcMainWindow::userBroadcastAction_triggered);
@@ -900,6 +909,7 @@ void lmcMainWindow::setUIText(void) {
   userBroadcastAction->setText(tr("Send &Broadcast Message"));
   userFileAction->setText(tr("Send &File"));
   userFolderAction->setText(tr("Send Fol&der"));
+  userRemoteAction->setText(tr("Remote &Desktop..."));
   userInfoAction->setText(tr("Get &Information"));
   avatarBrowseAction->setText(tr("&Browse for more pictures..."));
   toolChatAction->setText(tr("&Conversation"));

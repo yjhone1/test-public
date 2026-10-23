@@ -1,4 +1,4 @@
-﻿/****************************************************************************
+/****************************************************************************
 **
 ** This file is part of LAN Messenger.
 ** 
@@ -46,6 +46,8 @@
 #include "gui/contacts/userselectdialog.h"
 #include "gui/main/aboutdialog.h"
 #include "gui/chat/broadcastwindow.h"
+#include "remote/remoteserver.h"
+#include "remote/remoteviewerwindow.h"
 
 class lmcCore : public QObject {
   Q_OBJECT
@@ -83,6 +85,8 @@ private slots:
   void addContacts(QStringList* pExcludList);
   void chatWindow_closed(QString* lpszUserId);
   void chatRoomWindow_closed(QString* lpszThreadId);
+  void startRemoteDesktop(QString* lpszUserId);
+  void onViewerClosed(const QString& targetUserId);
 
 private:
   void stop(void);
@@ -93,6 +97,7 @@ private:
   void routeMessage(MessageType type, QString* lpszUserId, XmlMessage* pMessage);
   void routeGroupMessage(MessageType type, QString* lpszUserId, XmlMessage* pMessage);
   void processPublicMessage(MessageType type, QString* lpszUserId, XmlMessage* pMessage);
+  void processRemoteMessage(MessageType type, QString* lpszUserId, XmlMessage* pMessage);
   void createTransferWindow(void);
   void showTransferWindow(bool show = false);
   void initFileTransfer(MessageType type, FileMode mode, QString* lpszUserId, XmlMessage* pMessage);
@@ -121,6 +126,8 @@ private:
   QPointer<lmcUserSelectDialog> pUserSelectDialog;
   QPointer<lmcAboutDialog> pAboutDialog;
   QPointer<lmcBroadcastWindow> pBroadcastWindow;
+  QPointer<RemoteServer> pRemoteServer;
+  QMap<QString, QPointer<RemoteViewerWindow>> remoteViewerWindows;
   bool messageTop;
   bool pubMessagePop;
   QString lang;

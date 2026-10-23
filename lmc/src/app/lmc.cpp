@@ -45,6 +45,7 @@ lmcCore::lmcCore(void) {
   connect(pMainWindow, &lmcMainWindow::showAbout, this, &lmcCore::showAbout);
   connect(pMainWindow, &lmcMainWindow::showBroadcast, this, &lmcCore::showBroadcast);
   connect(pMainWindow, &lmcMainWindow::showPublicChat, this, &lmcCore::showPublicChat);
+  connect(pMainWindow, &lmcMainWindow::remoteStarting, this, &lmcCore::startRemoteDesktop);
   connect(pMainWindow, &lmcMainWindow::groupUpdated, this, &lmcCore::updateGroup);
   pPublicChatWindow = new lmcChatRoomWindow();
   connect(pPublicChatWindow, &lmcChatRoomWindow::messageSent, this, &lmcCore::sendMessage);
@@ -235,6 +236,19 @@ void lmcCore::stop(void) {
     pPublicChatWindow->deleteLater();
   }
 
+  if(pRemoteServer) {
+    pRemoteServer->stopServer();
+    delete pRemoteServer;
+    pRemoteServer = nullptr;
+  }
+  for(auto it = remoteViewerWindows.begin(); it != remoteViewerWindows.end(); ++it) {
+    if(it.value()) {
+      it.value()->close();
+      delete it.value();
+    }
+  }
+  remoteViewerWindows.clear();
+
   if(pTimer)
     pTimer->stop();
 
@@ -310,6 +324,10 @@ void lmcCore::sendMessage(MessageType type, QString* lpszUserId, XmlMessage* pMe
   case MT_File:
   case MT_Avatar:
   case MT_Folder:
+  case MT_RemoteRequest:
+  case MT_RemoteAccept:
+  case MT_RemoteReject:
+  case MT_RemoteClose:
     pMessaging->sendMessage(type, lpszUserId, pMessage);
     break;
   case MT_Status:
@@ -593,6 +611,12 @@ void lmcCore::processMessage(MessageType type, QString* lpszUserId, XmlMessage* 
   case MT_WebFailed:
     pUpdateWindow->receiveMessage(type, lpszUserId, pMessage);
     break;
+  case MT_RemoteRequest:
+  case MT_RemoteAccept:
+  case MT_RemoteReject:
+  case MT_RemoteClose:
+    processRemoteMessage(type, lpszUserId, pMessage);
+    break;
   default:
     break;
   }
@@ -833,6 +857,7 @@ void lmcCore::createChatWindow(QString* lpszUserId) {
   connect(pChatWindow, &lmcChatWindow::messageSent, this, &lmcCore::sendMessage);
   connect(pChatWindow, &lmcChatWindow::showHistory, this, &lmcCore::showHistory);
   connect(pChatWindow, &lmcChatWindow::showTransfers, this, &lmcCore::showTransfers);
+  connect(pChatWindow, &lmcChatWindow::remoteStarting, this, &lmcCore::startRemoteDesktop);
   connect(pChatWindow, &lmcChatWindow::closed, this, &lmcCore::chatWindow_closed);
   pChatWindow->init(pLocalUser, pRemoteUser, pMessaging->isConnected());
 }
@@ -956,4 +981,104 @@ void lmcCore::showPortConflictMessage(void) {
                       "configured for use with %2.");
   msgBox.setDetailedText(detail.arg(lmcStrings::appName(), lmcStrings::appName()));
   msgBox.exec();
+}
+
+void lmcCore::startRemoteDesktop(QString* lpszUserId) {
+  if(!lpszUserId || lpszUserId->isEmpty())
+    return;
+
+  XmlMessage reqMessage;
+  reqMessage.addData(XN_MESSAGE, tr("Requesting Remote Desktop connection..."));
+  sendMessage(MT_RemoteRequest, lpszUserId, &reqMessage);
+
+  User* pUser = pMessaging->getUser(lpszUserId);
+  QString peerName = pUser ? pUser->name : *lpszUserId;
+  showTrayMessage(TM_Connection, tr("Sent Remote Desktop request to %1").arg(peerName));
+}
+
+void lmcCore::processRemoteMessage(MessageType type, QString* lpszUserId, XmlMessage* pMessage) {
+  if(!lpszUserId || lpszUserId->isEmpty())
+    return;
+
+  User* pUser = pMessaging->getUser(lpszUserId);
+  QString peerName = pUser ? pUser->name : *lpszUserId;
+
+  switch(type) {
+  case MT_RemoteRequest: {
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        pMainWindow,
+        tr("Remote Desktop Request"),
+        tr("%1 is requesting to view and control your desktop.\nDo you want to accept?").arg(peerName),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if(reply == QMessageBox::Yes) {
+      if(!pRemoteServer) {
+        pRemoteServer = new RemoteServer(this);
+      }
+      if(pRemoteServer->startServer(0)) {
+        quint16 port = pRemoteServer->serverPort();
+        XmlMessage acceptMsg;
+        acceptMsg.addData(XN_REMOTETCPPORT, QString::number(port));
+        sendMessage(MT_RemoteAccept, lpszUserId, &acceptMsg);
+        showTrayMessage(TM_Connection, tr("Remote Desktop started on port %1").arg(port));
+      } else {
+        XmlMessage rejectMsg;
+        sendMessage(MT_RemoteReject, lpszUserId, &rejectMsg);
+      }
+    } else {
+      XmlMessage rejectMsg;
+      sendMessage(MT_RemoteReject, lpszUserId, &rejectMsg);
+    }
+    break;
+  }
+
+  case MT_RemoteAccept: {
+    quint16 port = pMessage->data(XN_REMOTETCPPORT).toUShort();
+    QString peerIp = pUser ? pUser->address : QString();
+
+    if(peerIp.isEmpty()) {
+      showTrayMessage(TM_Connection, tr("Could not determine peer IP for Remote Desktop."));
+      return;
+    }
+
+    if(remoteViewerWindows.contains(*lpszUserId) && remoteViewerWindows.value(*lpszUserId)) {
+      remoteViewerWindows.value(*lpszUserId)->activateWindow();
+      return;
+    }
+
+    RemoteViewerWindow* viewer = new RemoteViewerWindow(*lpszUserId, peerName);
+    connect(viewer, &RemoteViewerWindow::viewerClosed, this, &lmcCore::onViewerClosed);
+    remoteViewerWindows.insert(*lpszUserId, viewer);
+    viewer->show();
+    viewer->connectToHost(peerIp, port);
+    break;
+  }
+
+  case MT_RemoteReject: {
+    QMessageBox::information(pMainWindow, tr("Remote Desktop"),
+                             tr("%1 rejected your Remote Desktop request.").arg(peerName));
+    break;
+  }
+
+  case MT_RemoteClose: {
+    if(remoteViewerWindows.contains(*lpszUserId) && remoteViewerWindows.value(*lpszUserId)) {
+      remoteViewerWindows.value(*lpszUserId)->close();
+    }
+    if(pRemoteServer) {
+      pRemoteServer->stopServer();
+    }
+    break;
+  }
+
+  default:
+    break;
+  }
+}
+
+void lmcCore::onViewerClosed(const QString& targetUserId) {
+  QString userId = targetUserId;
+  XmlMessage closeMsg;
+  sendMessage(MT_RemoteClose, &userId, &closeMsg);
+  remoteViewerWindows.remove(targetUserId);
 }

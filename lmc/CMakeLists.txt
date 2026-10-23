@@ -52,6 +52,13 @@ add_library(lmc_core STATIC
     src/gui/contacts/usertreewidget.cpp
     src/network/webnetwork.cpp
     src/messaging/xmlmessage.cpp
+    src/remote/remoteserver.cpp
+    src/remote/remoteclient.cpp
+    src/remote/remoteviewerwindow.cpp
+    src/remote/remotedefinitions.h
+    src/remote/remoteserver.h
+    src/remote/remoteclient.h
+    src/remote/remoteviewerwindow.h
     src/gui/widgets/actionhelper.h
     src/gui/main/aboutdialog.h
     src/gui/chat/broadcastwindow.h

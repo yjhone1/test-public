@@ -1,0 +1,71 @@
+name: Windows Build
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+
+      - name: Install Qt 6.8.3
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: win64_msvc2022_64
+          cache: true
+
+      - name: Install OpenSSL
+        shell: pwsh
+        run: |
+          choco install openssl -y --no-progress
+          $ssl = @("$env:ProgramFiles\OpenSSL", "$env:ProgramFiles\OpenSSL-Win64") | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $ssl) { throw "OpenSSL directory not found" }
+          New-Item -ItemType Directory -Force openssl/include, openssl/lib, openssl/bin | Out-Null
+          Copy-Item -Recurse $ssl/include/* openssl/include/
+          if (Test-Path "$ssl/lib/VC/x64/MD") {
+            Copy-Item $ssl/lib/VC/x64/MD/* openssl/lib/
+          } else {
+            Copy-Item $ssl/lib/*.lib openssl/lib/
+          }
+          Copy-Item $ssl/bin/*.dll openssl/bin/
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DLMC_RELEASE_DIR="$PWD/lmc/release" -DLMC_BUILD_LMM=OFF -DOPENSSL_ROOT_DIR="$PWD/openssl"
+
+      - name: Build Project
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --target package-local --parallel
+
+      - name: Deploy Qt Dependencies
+        shell: pwsh
+        run: |
+          windeployqt --release --no-translations --compiler-runtime lmc/release/lan-messenger.exe
+          Copy-Item openssl/bin/*.dll lmc/release/
+
+      - name: Build NSIS Installer (.exe)
+        shell: cmd
+        run: |
+          choco install nsis -y --no-progress
+          cd lmc\setup\win32
+          call setup.bat release 2.0.0 2.0.0.0
+
+      - name: Upload Windows Installer (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: lan-messenger-windows-setup
+          path: |
+            lmc/setup/lmc-*.exe
+            lmc/release/lan-messenger.exe

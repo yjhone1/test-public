@@ -423,6 +423,10 @@ void lmcChatWindow::btnFolder_clicked(void) {
   }
 }
 
+void lmcChatWindow::btnRemote_clicked(void) {
+  emit remoteStarting(&peerId);
+}
+
 void lmcChatWindow::btnSave_clicked(void) {
   QString dir = pSettings->value(IDS_SAVEPATH, IDS_SAVEPATH_VAL).toString();
   QString fileName = QFileDialog::getSaveFileName(this, tr("Save Conversation"), dir,
@@ -521,6 +525,9 @@ void lmcChatWindow::createToolBar(void) {
   bool folderCap = ((peerCaps.value(peerId) & UC_Folder) == UC_Folder);
   pFolderAction->setEnabled(folderCap);
 
+  pRemoteAction = ActionHelper::createAction(pLeftBar, "Remote &Desktop...", this, &lmcChatWindow::btnRemote_clicked,
+                                             QIcon(QPixmap(IDR_NETWORKSET, "PNG")));
+
   pLeftBar->addSeparator();
 
   pSaveAction = ActionHelper::createAction(pLeftBar, "&Save As...", this, &lmcChatWindow::btnSave_clicked,
@@ -556,6 +563,7 @@ void lmcChatWindow::setUIText(void) {
   pbtnSmiley->setToolTip(tr("Insert Smiley"));
   pFileAction->setText(tr("Send A &File..."));
   pFolderAction->setText(tr("Send A Fol&der..."));
+  pRemoteAction->setText(tr("Remote &Desktop..."));
   pSaveAction->setText(tr("&Save As..."));
   pHistoryAction->setText(tr("&History"));
   pTransferAction->setText(tr("File &Transfers"));

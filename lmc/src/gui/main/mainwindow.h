@@ -1,4 +1,4 @@
-﻿/****************************************************************************
+/****************************************************************************
 **
 ** This file is part of LAN Messenger.
 ** 
@@ -82,6 +82,7 @@ signals:
   void showAbout(void);
   void showBroadcast(void);
   void showPublicChat(void);
+  void remoteStarting(QString* lpszUserId);
   void groupUpdated(GroupOp op, QVariant value1, QVariant value2);
 
 protected:
@@ -119,6 +120,7 @@ private slots:
   void userBroadcastAction_triggered(void);
   void userFileAction_triggered(void);
   void userFolderAction_triggered(void);
+  void userRemoteAction_triggered(void);
   void userInfoAction_triggered(void);
   void txtNote_returnPressed(void);
   void txtNote_lostFocus(void);
@@ -205,6 +207,7 @@ private:
   QAction* userBroadcastAction;
   QAction* userFileAction;
   QAction* userFolderAction;
+  QAction* userRemoteAction;
   QAction* userInfoAction;
   QAction* avatarBrowseAction;
   bool windowLoaded;

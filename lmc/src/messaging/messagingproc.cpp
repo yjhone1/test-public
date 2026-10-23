@@ -1,4 +1,4 @@
-﻿/****************************************************************************
+/****************************************************************************
 **
 ** This file is part of LAN Messenger.
 ** 
@@ -373,6 +373,12 @@ void lmcMessaging::processMessage(MessageHeader* pHeader, XmlMessage* pMessage) 
     break;
   case MT_Folder:
     processFolder(pHeader, pMessage);
+    break;
+  case MT_RemoteRequest:
+  case MT_RemoteAccept:
+  case MT_RemoteReject:
+  case MT_RemoteClose:
+    emit messageReceived(pHeader->type, &pHeader->userId, pMessage);
     break;
   default:
     break;

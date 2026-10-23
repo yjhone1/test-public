@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 
+if(POLICY CMP0177)
+    cmake_policy(SET CMP0177 NEW)
+endif()
+
 project(lan-messenger VERSION 2.0.0 LANGUAGES CXX)
 
 # Display version: git tag (vX.Y.Z) via -DLMC_VERSION, else 0.0.0.

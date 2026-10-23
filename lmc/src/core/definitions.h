@@ -104,6 +104,10 @@ enum MessageType {
   MT_ChatState,
   MT_Note,
   MT_Folder,
+  MT_RemoteRequest,
+  MT_RemoteAccept,
+  MT_RemoteReject,
+  MT_RemoteClose,
   //	These are used only for local communication between layers
   MT_Group,
   MT_Version,
@@ -137,6 +141,10 @@ const QString MessageTypeNames[] = {
   "chatstate",
   "note",
   "folder",
+  "remoterequest",
+  "remoteaccept",
+  "remotereject",
+  "remoteclose",
   //	These are used only for local communication between layers
   "group",
   "version",

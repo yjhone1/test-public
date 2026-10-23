@@ -78,6 +78,7 @@
 #define XN_ARGSILENTMODE "argsilentmode"
 #define XN_ARGUDPPORT "argudpport"
 #define XN_TCPPORT "tcpport"
+#define XN_REMOTETCPPORT "remoteport"
 #define XN_ARGCONFIG "argconfig"
 #define XN_USERCAPS "usercaps"
 #define XN_FOLDERID "folderid"

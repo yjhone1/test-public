@@ -1,4 +1,4 @@
-﻿/****************************************************************************
+/****************************************************************************
 **
 ** This file is part of LAN Messenger.
 ** 
@@ -71,6 +71,7 @@ signals:
   void messageSent(MessageType type, QString* lpszUserId, XmlMessage* pMessage);
   void showHistory(void);
   void showTransfers(void);
+  void remoteStarting(QString* lpszUserId);
   void closed(QString* lpszUserId);
 
 protected:
@@ -85,6 +86,7 @@ private slots:
   void btnFontColor_clicked(void);
   void btnFile_clicked(void);
   void btnFolder_clicked(void);
+  void btnRemote_clicked(void);
   void btnSave_clicked(void);
   void btnHistory_clicked(void);
   void btnTransfers_clicked(void);
@@ -126,6 +128,7 @@ private:
   lmcToolButton* pbtnSmiley;
   QAction* pFileAction;
   QAction* pFolderAction;
+  QAction* pRemoteAction;
   QAction* pSaveAction;
   QToolBar* pRightBar;
   QAction* pHistoryAction;
