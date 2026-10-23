@@ -31,13 +31,13 @@ jobs:
           $ssl = @("$env:ProgramFiles\OpenSSL", "$env:ProgramFiles\OpenSSL-Win64") | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $ssl) { throw "OpenSSL directory not found" }
           New-Item -ItemType Directory -Force openssl/include, openssl/lib, openssl/bin | Out-Null
-          Copy-Item -Recurse $ssl/include/* openssl/include/
-          if (Test-Path "$ssl/lib/VC/x64/MD") {
-            Copy-Item $ssl/lib/VC/x64/MD/* openssl/lib/
-          } else {
-            Copy-Item $ssl/lib/*.lib openssl/lib/
-          }
-          Copy-Item $ssl/bin/*.dll openssl/bin/
+          Copy-Item -Recurse "$ssl\include\openssl" openssl/include/
+          $md = Get-ChildItem "$ssl\lib" -Recurse -Filter libcrypto.lib | Select-Object -First 1
+          if (-not $md) { throw "libcrypto.lib not found under $ssl\lib" }
+          Copy-Item "$($md.DirectoryName)\*.lib" openssl/lib/
+          Copy-Item "$ssl\bin\libcrypto-*.dll" openssl/bin/
+          Copy-Item "$ssl\bin\libssl-*.dll" openssl/bin/
+          Get-ChildItem openssl/lib, openssl/bin | Format-Table Name, Length
 
       - name: Configure CMake
         shell: pwsh
@@ -52,7 +52,11 @@ jobs:
       - name: Deploy Qt Dependencies
         shell: pwsh
         run: |
-          windeployqt --release --no-translations --compiler-runtime lmc/release/lan-messenger.exe
+          windeployqt --release --compiler-runtime lmc/release/lmc.exe
+          $dst = "lmc/release/tls"
+          if (-not (Test-Path $dst)) {
+            Copy-Item -Recurse "$env:QT_ROOT_DIR/plugins/tls" $dst
+          }
           Copy-Item openssl/bin/*.dll lmc/release/
 
       - name: Build NSIS Installer (.exe)
@@ -68,4 +72,4 @@ jobs:
           name: lan-messenger-windows-setup
           path: |
             lmc/setup/lmc-*.exe
-            lmc/release/lan-messenger.exe
+            lmc/release/lmc.exe
